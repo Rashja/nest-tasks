@@ -11,11 +11,22 @@ export class TasksService {
     return this.tasks;
   }
 
-  getTaskById(id:string):ITask{
-    return this.tasks.find(task => task.id === id)
+  getTaskById(id: string): ITask {
+    return this.tasks.find((task) => task.id === id);
   }
 
-  createTasks(createTaskDto:CreateTaskDto): ITask {
+  deleteTaskById(id: string): ITask[] {
+    this.tasks = this.tasks.filter((task) => task.id !== id);
+    return this.tasks;
+  }
+
+  updateTaskStatus(id:string,status:TaskStatus):ITask{
+    const task=this.getTaskById(id);
+    task.status=status;
+    return task;
+  }
+
+  createTasks(createTaskDto: CreateTaskDto): ITask {
     const task: ITask = {
       ...createTaskDto,
       id: uuid(),
