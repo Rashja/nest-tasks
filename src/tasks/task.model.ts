@@ -1,12 +1,20 @@
-export interface ITask{
-    id:string;
-    title:string,
-    description:string;
-    status:TaskStatus
+import * as mongoose from 'mongoose';
+
+export const TaskSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  status: { type: String, required: true },
+});
+
+export interface ITask extends mongoose.Document{
+  id: string;
+  title: string;
+  description: string;
+  status: TaskStatus;
 }
 
 export enum TaskStatus {
-    OPEN="OPEN",
-    IN_PROGRESS='IN_PROGRESS',
-    DONE='DONE'
+  OPEN = 'OPEN',
+  IN_PROGRESS = 'IN_PROGRESS',
+  DONE = 'DONE',
 }

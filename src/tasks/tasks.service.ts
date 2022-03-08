@@ -3,42 +3,55 @@ import { ITask, TaskStatus } from './task.model';
 import { v4 as uuid } from 'uuid';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { GetTasksFilterDto } from './dto/get-tasks-filter.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class TasksService {
   private tasks: ITask[] = [];
+  constructor(@InjectModel('Task') private readonly taskModel: Model<ITask>) {}
 
-  getAllTasks(): ITask[] {
-    return this.tasks;
+  async getAllTasks(): Promise<ITask[]> {
+    const tasks = await this.taskModel.find().exec();
+
+    return tasks;
   }
 
-  getTaskById(id: string): ITask {
-    const found= this.tasks.find((task) => task.id === id);
-
-    if(!found){
-      throw new NotFoundException(`Not found task by ID "${id}"`)
+  async getTaskById(id: string): Promise<ITask> {
+    let found;
+    try {
+      found = await this.taskModel.findById(id);
+    } catch (error) {
+      throw new NotFoundException(`Not found task by ID "${id}"`);
+    }
+    if (!found) {
+      throw new NotFoundException(`Not found task by ID "${id}"`);
     }
 
     return found;
   }
 
-  deleteTaskById(id: string): ITask[] {
-    this.tasks = this.tasks.filter((task) => task.id !== id);
-    return this.tasks;
+  async deleteTaskById(id: string): Promise<void> {
+    const result=await this.taskModel.deleteOne({ _id:id }).exec();
+    
+    if(result.deletedCount === 0){
+      throw new NotFoundException(`Not found task by ID "${id}"`);
+    }
   }
 
-  updateTaskStatus(id: string, status: TaskStatus): ITask {
-    const task = this.getTaskById(id);
+  async updateTaskStatus(id: string, status: TaskStatus): Promise<ITask> {
+    const task = await this.getTaskById(id);
     task.status = status;
+    task.save();
     return task;
   }
 
-  getTasksByFilters(filterDto: GetTasksFilterDto): ITask[] {
+  async getTasksByFilters(filterDto: GetTasksFilterDto): Promise<ITask[]> {
     const { status, search } = filterDto;
-    let tasks = this.getAllTasks();
+    let tasks = await this.getAllTasks();
 
     if (status) {
-      tasks = this.tasks.filter((task) => task.status === status);
+      tasks = tasks.filter((task) => task.status === status);
     }
 
     if (search) {
@@ -52,15 +65,14 @@ export class TasksService {
     return tasks;
   }
 
-  createTasks(createTaskDto: CreateTaskDto): ITask {
-    const task: ITask = {
+  async createTasks(createTaskDto: CreateTaskDto): Promise<ITask> {
+    const newTask = new this.taskModel({
       ...createTaskDto,
-      id: uuid(),
       status: TaskStatus.OPEN,
-    };
+    });
 
-    this.tasks.push(task);
+    const result = await newTask.save();
 
-    return task;
+    return result;
   }
 }
